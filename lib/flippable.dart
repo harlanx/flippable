@@ -226,14 +226,10 @@ class _FlippableState extends State<Flippable> with TickerProviderStateMixin {
     if (widget.dragAxis == DragAxis.both) {
       if (verticalDrag.value >= 90 && verticalDrag.value <= 270) {
         angle = kPi;
-      } else {
-        angle = 0.0;
       }
     } else {
       if (widget.dragAxis == DragAxis.vertical) {
         angle = kPi;
-      } else {
-        angle = 0.0;
       }
     }
     return angle;
@@ -244,14 +240,10 @@ class _FlippableState extends State<Flippable> with TickerProviderStateMixin {
     if (widget.dragAxis == DragAxis.both) {
       if (horizontalDrag.value >= 90 && horizontalDrag.value <= 270) {
         angle = kPi;
-      } else {
-        angle = 0.0;
       }
     } else {
       if (widget.dragAxis == DragAxis.horizontal) {
         angle = kPi;
-      } else {
-        angle = 0.0;
       }
     }
     return angle;
