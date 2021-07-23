@@ -15,10 +15,35 @@ A Flutter Widget wrapper that enables vertical and horizontal dragging to flip t
 ## Usage
 
 ```dart
-import 'package:flutter/material.dart';
 import 'package:flippable/flippable.dart';
+import 'package:flutter/material.dart';
 
-class MyWidget extends StatelessWidget {
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,7 +55,7 @@ class MyWidget extends StatelessWidget {
           width: 400,
           child: Flippable(
             dragAxis: DragAxis.both,
-            snapBack: true,
+            revert: false,
             frontWidget: Image.asset(
               'assets/images/credit_card_front.png',
               fit: BoxFit.contain,
