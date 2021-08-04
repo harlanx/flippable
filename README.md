@@ -2,6 +2,8 @@
 
 A Flutter Widget wrapper that enables vertical and horizontal dragging to flip the front and back widget.
 
+I do not plan to release it on pub.dev. Feel free to fork it.
+
 ## Features
 - Horizontal Dragging
 - Vertical Dragging
