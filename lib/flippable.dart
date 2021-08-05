@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 ///
 /// Note: Combination not of snapBack: false with DragAxis.both is not working correctly. Use Cautiously.
 class Flippable extends StatefulWidget {
+  /// Provide a controller to flip the widget programatically.
+  final FlippableController? controller;
+
   /// The widget to show as default
   final Widget frontWidget;
 
@@ -23,13 +26,22 @@ class Flippable extends StatefulWidget {
   /// Duration of the animation when the flip is snapping to front and back position.
   final Duration duration;
 
+  /// Animation curve of the flip rotation.
+  final Curve curve;
+
+  /// Returns the current flip state when changed
+  final ValueChanged<bool>? onChanged;
+
   const Flippable({
     Key? key,
     required this.frontWidget,
+    this.controller,
     Widget? backWidget,
+    this.onChanged,
     this.revert = true,
     this.dragAxis = DragAxis.horizontal,
     this.duration = const Duration(milliseconds: 500),
+    this.curve = Curves.easeIn,
   })  : backWidget = backWidget != null ? backWidget : frontWidget,
         super(key: key);
 
@@ -38,44 +50,49 @@ class Flippable extends StatefulWidget {
 }
 
 class _FlippableState extends State<Flippable> with TickerProviderStateMixin {
-  // Using math.pi causes crash in web so we used a shorter one.
-  final kPi = 3.1415;
-  late AnimationController vertAnimCtrlr, horizAnimCtrlr;
-  late Animation<double> vertAnimation, horizAnimation;
-  ValueNotifier<double> verticalDrag = ValueNotifier(0.0), horizontalDrag = ValueNotifier(0.0);
-  ValueNotifier<bool> isFront = ValueNotifier(true);
-  double lastVertDrag = 0.0, lastHorizDrag = 0.0;
+  final _kPi = 3.1415; // Using math.pi causes crash in web so we used a shorter one.
+  late AnimationController _vertAnimCtrlr, _horizAnimCtrlr;
+  late Animation<double> _vertAnimation, _horizAnimation;
+  ValueNotifier<double> _verticalDrag = ValueNotifier(0.0), _horizontalDrag = ValueNotifier(0.0);
+  ValueNotifier<bool> _isFront = ValueNotifier(true);
+  double _lastVertDrag = 0.0, _lastHorizDrag = 0.0;
 
   @override
   void initState() {
     super.initState();
-    vertAnimCtrlr = AnimationController(
+    _vertAnimCtrlr = AnimationController(
       vsync: this,
       duration: widget.duration,
     );
 
-    horizAnimCtrlr = AnimationController(
+    _horizAnimCtrlr = AnimationController(
       vsync: this,
       duration: widget.duration,
     );
 
-    verticalDrag.addListener(() {
-      setImageSide(verticalDrag.value);
+    _verticalDrag.addListener(() {
+      _setWidgetSide(_verticalDrag.value);
       //print('Vertical: ${verticalDrag.value}');
       //print('Horizontal: ${horizontalDrag.value}');
     });
 
-    horizontalDrag.addListener(() {
-      setImageSide(horizontalDrag.value);
+    _horizontalDrag.addListener(() {
+      _setWidgetSide(_horizontalDrag.value);
       //print('Horizontal: ${horizontalDrag.value}');
       //print('Vertical: ${verticalDrag.value}');
     });
+
+    _isFront.addListener(() {
+      widget.onChanged!(_isFront.value);
+    });
+
+    widget.controller?._addState(this);
   }
 
   @override
   void dispose() {
-    vertAnimCtrlr.dispose();
-    horizAnimCtrlr.dispose();
+    _vertAnimCtrlr.dispose();
+    _horizAnimCtrlr.dispose();
     super.dispose();
   }
 
@@ -84,77 +101,81 @@ class _FlippableState extends State<Flippable> with TickerProviderStateMixin {
     return GestureDetector(
       onVerticalDragStart: (dragDetails) {
         if (widget.dragAxis == DragAxis.vertical || widget.dragAxis == DragAxis.both) {
-          vertAnimCtrlr.reset();
-          verticalDrag.value = lastVertDrag;
+          _vertAnimCtrlr.reset();
+          _verticalDrag.value = _lastVertDrag;
         }
       },
       onVerticalDragUpdate: (dragDetails) {
         if (widget.dragAxis == DragAxis.vertical || widget.dragAxis == DragAxis.both) {
-          verticalDrag.value = (verticalDrag.value + dragDetails.delta.dy) % 360;
+          _verticalDrag.value = (_verticalDrag.value + dragDetails.delta.dy) % 360;
         }
       },
       onVerticalDragEnd: (dragDetails) {
         if (widget.dragAxis == DragAxis.vertical || widget.dragAxis == DragAxis.both) {
           double endRotation = 0.0;
           if (widget.revert) {
-            endRotation = 360 - verticalDrag.value >= 180 ? 0.0 : 360;
-            lastVertDrag = endRotation;
-            vertAnimation = Tween<double>(begin: verticalDrag.value, end: endRotation).animate(vertAnimCtrlr)
-              ..addListener(() {
-                verticalDrag.value = vertAnimation.value;
-              });
-            vertAnimCtrlr.fling();
+            endRotation = 360 - _verticalDrag.value >= 180 ? 0.0 : 360;
+            _lastVertDrag = endRotation;
+            _vertAnimation =
+                Tween<double>(begin: _verticalDrag.value, end: endRotation).animate(CurvedAnimation(parent: _vertAnimCtrlr, curve: widget.curve))
+                  ..addListener(() {
+                    _verticalDrag.value = _vertAnimation.value;
+                  });
+            _vertAnimCtrlr.fling();
           } else {
-            if (verticalDrag.value >= 90 && verticalDrag.value <= 270) {
+            if (_verticalDrag.value >= 90 && _verticalDrag.value <= 270) {
               endRotation = 180;
             } else {
-              endRotation = 360 - verticalDrag.value >= 180 ? 0.0 : 360;
+              endRotation = 360 - _verticalDrag.value >= 180 ? 0.0 : 360;
             }
-            lastVertDrag = endRotation;
-            lastHorizDrag = endRotation;
-            vertAnimation = Tween<double>(begin: verticalDrag.value, end: endRotation).animate(vertAnimCtrlr)
-              ..addListener(() {
-                verticalDrag.value = vertAnimation.value;
-              });
-            vertAnimCtrlr.fling();
+            _lastVertDrag = endRotation;
+            _lastHorizDrag = endRotation;
+            _vertAnimation =
+                Tween<double>(begin: _verticalDrag.value, end: endRotation).animate(CurvedAnimation(parent: _vertAnimCtrlr, curve: widget.curve))
+                  ..addListener(() {
+                    _verticalDrag.value = _vertAnimation.value;
+                  });
+            _vertAnimCtrlr.fling();
           }
         }
       },
       onHorizontalDragStart: (dragDetails) {
         if (widget.dragAxis == DragAxis.horizontal || widget.dragAxis == DragAxis.both) {
-          horizAnimCtrlr.reset();
-          horizontalDrag.value = lastHorizDrag;
+          _horizAnimCtrlr.reset();
+          _horizontalDrag.value = _lastHorizDrag;
         }
       },
       onHorizontalDragUpdate: (dragDetails) {
         if (widget.dragAxis == DragAxis.horizontal || widget.dragAxis == DragAxis.both) {
-          horizontalDrag.value = (horizontalDrag.value - dragDetails.delta.dx) % 360;
+          _horizontalDrag.value = (_horizontalDrag.value - dragDetails.delta.dx) % 360;
         }
       },
       onHorizontalDragEnd: (dragDetails) {
         if (widget.dragAxis == DragAxis.horizontal || widget.dragAxis == DragAxis.both) {
           double endRotation = 0.0;
           if (widget.revert) {
-            endRotation = 360 - horizontalDrag.value >= 180 ? 0.0 : 360;
-            lastHorizDrag = endRotation;
-            horizAnimation = Tween<double>(begin: horizontalDrag.value, end: endRotation).animate(horizAnimCtrlr)
-              ..addListener(() {
-                horizontalDrag.value = horizAnimation.value;
-              });
-            horizAnimCtrlr.fling();
+            endRotation = 360 - _horizontalDrag.value >= 180 ? 0.0 : 360;
+            _lastHorizDrag = endRotation;
+            _horizAnimation =
+                Tween<double>(begin: _horizontalDrag.value, end: endRotation).animate(CurvedAnimation(parent: _vertAnimCtrlr, curve: widget.curve))
+                  ..addListener(() {
+                    _horizontalDrag.value = _horizAnimation.value;
+                  });
+            _horizAnimCtrlr.fling();
           } else {
-            if (horizontalDrag.value >= 90 && horizontalDrag.value <= 270) {
+            if (_horizontalDrag.value >= 90 && _horizontalDrag.value <= 270) {
               endRotation = 180;
             } else {
-              endRotation = 360 - horizontalDrag.value >= 180 ? 0.0 : 360;
+              endRotation = 360 - _horizontalDrag.value >= 180 ? 0.0 : 360;
             }
-            lastHorizDrag = endRotation;
-            lastVertDrag = endRotation;
-            horizAnimation = Tween<double>(begin: horizontalDrag.value, end: endRotation).animate(horizAnimCtrlr)
-              ..addListener(() {
-                horizontalDrag.value = horizAnimation.value;
-              });
-            horizAnimCtrlr.fling();
+            _lastHorizDrag = endRotation;
+            _lastVertDrag = endRotation;
+            _horizAnimation =
+                Tween<double>(begin: _horizontalDrag.value, end: endRotation).animate(CurvedAnimation(parent: _vertAnimCtrlr, curve: widget.curve))
+                  ..addListener(() {
+                    _horizontalDrag.value = _horizAnimation.value;
+                  });
+            _horizAnimCtrlr.fling();
           }
         }
       },
@@ -163,25 +184,25 @@ class _FlippableState extends State<Flippable> with TickerProviderStateMixin {
           alignment: Alignment.center,
           transform: Matrix4.identity()
             ..setEntry(3, 2, 0.002)
-            ..rotateX(verticalDrag.value / 180 * kPi)
-            ..rotateY(horizontalDrag.value / 180 * kPi),
+            ..rotateX(_verticalDrag.value / 180 * _kPi)
+            ..rotateY(_horizontalDrag.value / 180 * _kPi),
           child: ValueListenableBuilder<bool>(
-            valueListenable: isFront,
+            valueListenable: _isFront,
             builder: (context, front, _) {
               if (front) {
                 return Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.identity()
-                    ..rotateX(frontImageXAngle)
-                    ..rotateY(frontImageYAngle),
+                    ..rotateX(_frontWidgetXAngle)
+                    ..rotateY(_frontWidgetYAngle),
                   child: widget.frontWidget,
                 );
               } else {
                 return Transform(
                   alignment: Alignment.center,
                   transform: Matrix4.identity()
-                    ..rotateX(backImageXAngle)
-                    ..rotateY(backImageYAngle),
+                    ..rotateX(_backWidgetXAngle)
+                    ..rotateY(_backWidgetYAngle),
                   child: widget.backWidget,
                 );
               }
@@ -192,67 +213,120 @@ class _FlippableState extends State<Flippable> with TickerProviderStateMixin {
     );
   }
 
-  void setImageSide(double drag) {
+  void _setWidgetSide(double drag) {
     if (drag <= 90 || drag >= 270) {
-      isFront.value = true;
+      _isFront.value = true;
     } else {
-      isFront.value = false;
+      _isFront.value = false;
     }
     setState(() {});
   }
 
-  double get frontImageXAngle {
+  double get _frontWidgetXAngle {
     double angle = 0.0;
     if (widget.dragAxis == DragAxis.both) {
-      if (verticalDrag.value >= 90 && verticalDrag.value <= 270) {
-        angle = kPi;
+      if (_verticalDrag.value >= 90 && _verticalDrag.value <= 270) {
+        angle = _kPi;
       }
     }
     return angle;
   }
 
-  double get frontImageYAngle {
+  double get _frontWidgetYAngle {
     double angle = 0.0;
     if (widget.dragAxis == DragAxis.both) {
-      if (horizontalDrag.value >= 90 && horizontalDrag.value <= 270) {
-        angle = kPi;
+      if (_horizontalDrag.value >= 90 && _horizontalDrag.value <= 270) {
+        angle = _kPi;
       }
     }
     return angle;
   }
 
-  double get backImageXAngle {
+  double get _backWidgetXAngle {
     double angle = 0.0;
     if (widget.dragAxis == DragAxis.both) {
-      if (verticalDrag.value >= 90 && verticalDrag.value <= 270) {
-        angle = kPi;
+      if (_verticalDrag.value >= 90 && _verticalDrag.value <= 270) {
+        angle = _kPi;
       }
     } else {
       if (widget.dragAxis == DragAxis.vertical) {
-        angle = kPi;
+        angle = _kPi;
       }
     }
     return angle;
   }
 
-  double get backImageYAngle {
+  double get _backWidgetYAngle {
     double angle = 0.0;
     if (widget.dragAxis == DragAxis.both) {
-      if (horizontalDrag.value >= 90 && horizontalDrag.value <= 270) {
-        angle = kPi;
+      if (_horizontalDrag.value >= 90 && _horizontalDrag.value <= 270) {
+        angle = _kPi;
       }
     } else {
       if (widget.dragAxis == DragAxis.horizontal) {
-        angle = kPi;
+        angle = _kPi;
       }
     }
     return angle;
   }
 }
 
-/// Axis where the child widget can be dragged to flip.
+/// Axis where the front and back child widgets can be dragged to flip.
 enum DragAxis {
   horizontal,
   vertical,
   both,
+}
+
+/// Controller to remove the need of GlobalKey to access and change the state of the FLippable Widget
+class FlippableController extends ChangeNotifier {
+  _FlippableState? state;
+
+  void _addState(_FlippableState state) {
+    this.state = state;
+  }
+
+  bool get isFront => state?._isFront.value ?? true;
+
+  ValueNotifier<double> get verticalDrag => state?._verticalDrag ?? ValueNotifier(0.0);
+
+  ValueNotifier<double> get horizontalDrag => state?._horizontalDrag ?? ValueNotifier(0.0);
+
+  double get lastVerticalDrag => state?._lastVertDrag ?? 0.0;
+
+  double get lastHorizDrag => state?._lastHorizDrag ?? 0.0;
+
+  /// Flip widget to the provided axis angle. Cannot be used with DragAxis.both.
+  void flipTo(double axisAngle) {
+    if (state != null) {
+      switch (state!.widget.dragAxis) {
+        case DragAxis.vertical:
+          state?._vertAnimCtrlr.reset();
+          state?._verticalDrag.value = state!._lastVertDrag;
+          state?._vertAnimation = Tween<double>(begin: state?._verticalDrag.value, end: axisAngle)
+              .animate(CurvedAnimation(parent: state!._vertAnimCtrlr, curve: state!.widget.curve))
+                ..addListener(() {
+                  state?._verticalDrag.value = state!._vertAnimation.value;
+                });
+          state!._lastVertDrag = axisAngle;
+          state!._vertAnimCtrlr.forward();
+          break;
+        case DragAxis.horizontal:
+          state?._horizAnimCtrlr.reset();
+          state?._horizontalDrag.value = state!._lastHorizDrag;
+          state?._horizAnimation = Tween<double>(begin: state?._horizontalDrag.value, end: axisAngle)
+              .animate(CurvedAnimation(parent: state!._horizAnimCtrlr, curve: state!.widget.curve))
+                ..addListener(() {
+                  state?._horizontalDrag.value = state!._horizAnimation.value;
+                });
+          state!._lastHorizDrag = axisAngle;
+          state!._horizAnimCtrlr.forward();
+          break;
+        default:
+          break;
+      }
+    }
+
+    notifyListeners();
+  }
 }
