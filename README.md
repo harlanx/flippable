@@ -9,6 +9,11 @@ I do not plan on releasing it in pub.dev. Feel free to fork it.
 - Vertical Dragging
 - Both Direction Dragging (Only one single axis is active when dragging)
 - Revert (Always animate back to front)
+- Controller (to listen to values and flip programatically)
+- onChanged Callback
+
+## Planned Features
+  - True orientation (Correction of orientation of back widget will be disabled)
 
 ## Preview
 
@@ -21,6 +26,7 @@ import 'package:flippable/flippable.dart';
 import 'package:flutter/material.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 
@@ -28,7 +34,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flippable Demo',
+      title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -45,35 +51,56 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final FlippableController _controller = FlippableController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         color: Colors.white,
         alignment: Alignment.center,
-        child: SizedBox(
-          height: 400,
-          width: 400,
-          child: Flippable(
-            dragAxis: DragAxis.both,
-            revert: false,
-            frontWidget: Image.asset(
-              'assets/images/credit_card_front.png',
-              fit: BoxFit.contain,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              child: Text('Flip It!'),
+              onPressed: () {
+                if (_controller.isFront) {
+                  _controller.flipTo(180);
+                } else {
+                  _controller.flipTo(0.0);
+                }
+              },
             ),
-            backWidget: Image.asset(
-              'assets/images/credit_card_back.png',
-              fit: BoxFit.contain,
+            SizedBox(height: 10),
+            Text('Is Widget Front: ${_controller.isFront}'),
+            SizedBox(
+              height: 400,
+              width: 400,
+              child: Flippable(
+                controller: _controller,
+                dragAxis: DragAxis.vertical,
+                revert: false,
+                duration: Duration(milliseconds: 600),
+                curve: Curves.easeInOut,
+                onChanged: (value) {
+                  setState(() {});
+                  print('isFront: $value');
+                },
+                frontWidget: Image.asset(
+                  'assets/images/credit_card_front.png',
+                  fit: BoxFit.contain,
+                ),
+                backWidget: Image.asset(
+                  'assets/images/credit_card_back.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 ```
-
-## Planned Features
-  - True orientation (Correction of orientation of back widget will be disabled)
-  - Create a controller to flip programatically.
-  - Add onChanged bool function to listen front and back state.
