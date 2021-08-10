@@ -5,15 +5,13 @@ A Flutter Widget wrapper that enables vertical and horizontal dragging to flip t
 I do not plan on releasing it in pub.dev. Feel free to fork it.
 
 ## Features
-- Horizontal Dragging
-- Vertical Dragging
-- Both Direction Dragging (Only one single axis is active when dragging)
-- Revert (Always animate back to front)
-- Controller (to listen to values and flip programatically)
-- onChanged Callback
-
-## Planned Features
-  - True orientation (Correction of orientation of back widget will be disabled)
+- [x] Horizontal Dragging
+- [x] Vertical Dragging
+- [x] Both Direction Dragging (Only one single axis is active when dragging)
+- [x] Revert (Always animate back to front)
+- [x] Controller (to listen to values and flip programatically)
+- [x] onChanged Callback
+- [ ] True orientation (Correction of orientation of back widget will be disabled)
 
 ## Preview
 
